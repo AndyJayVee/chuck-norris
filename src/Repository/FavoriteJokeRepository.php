@@ -3,7 +3,6 @@
 namespace App\Repository;
 
 use App\Entity\FavoriteJoke;
-use App\Entity\Joke;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\ORM\EntityManagerInterface;
@@ -11,10 +10,10 @@ use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
 
 /**
- * @method Joke|null find($id, $lockMode = null, $lockVersion = null)
- * @method Joke|null findOneBy(array $criteria, array $orderBy = null)
- * @method Joke[]    findAll()
- * @method Joke[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
+ * @method FavoriteJoke|null find($id, $lockMode = null, $lockVersion = null)
+ * @method FavoriteJoke|null findOneBy(array $criteria, array $orderBy = null)
+ * @method FavoriteJoke[]    findAll()
+ * @method FavoriteJoke[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
  */
 class FavoriteJokeRepository extends ServiceEntityRepository
 {
@@ -35,10 +34,10 @@ class FavoriteJokeRepository extends ServiceEntityRepository
     }
 
     /**
-     * @param Joke $joke
+     * @param FavoriteJoke $joke
      * @return void
      */
-    public function save(Joke $joke): void
+    public function save(FavoriteJoke $joke): void
     {
         $this->entityManager->persist($joke);
         $this->entityManager->flush();
@@ -62,15 +61,10 @@ class FavoriteJokeRepository extends ServiceEntityRepository
      */
     public function favoriteJokesAmount(array $criteria)
     {
-        $query = $this->entityManager->createQueryBuilder('g')->select('count(g.id)')
+        $query = $this->entityManager->createQueryBuilder('g')->select('count(g.joke_id)')
             ->from($this->entityClass, 'g');
         return $query
             ->getQuery()
             ->getSingleScalarResult();
-    }
-
-    public function testThisThing()
-    {
-
     }
 }

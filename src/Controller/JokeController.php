@@ -3,9 +3,11 @@
 
 namespace App\Controller;
 
-
+use App\Entity\FavoriteJoke;
 use App\HttpClient\JokeHttpClient;
-use App\Repository\JokeRepository;
+use App\Repository\FavoriteJokeRepository;
+use Doctrine\ORM\NonUniqueResultException;
+use Doctrine\ORM\NoResultException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
@@ -16,31 +18,96 @@ use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 class JokeController
 {
     /**
-     * @var JokeRepository
+     * @var FavoriteJokeRepository
      */
     private $repository;
 
     /**
-     * @param JokeRepository $repository
+     * @var JokeHttpClient
+     */
+    private $httpClient;
+
+    /**
+     * @param FavoriteJokeRepository $repository
      */
     public function __construct(
-        JokeRepository $repository
+        FavoriteJokeRepository $repository
     ){
         $this->repository = $repository;
+        $this->httpClient = new JokeHttpClient;
     }
 
     /**
      * @Route("/jokes")
-
+     * @return JsonResponse
      * @throws ClientExceptionInterface
      * @throws RedirectionExceptionInterface
      * @throws ServerExceptionInterface
      * @throws TransportExceptionInterface
      */
-    public function getTenRandomJokes() //: JsonResponse
+    public function getTenRandomJokes(): JsonResponse
     {
-        $jokes = (new JokeHttpClient())->getTenJokes();
-        $this->repository->saveAll($jokes);
-//        return new JsonResponse($jokes);
+        $jokes = $this->httpClient->getTenJokes();
+        return new JsonResponse($jokes);
     }
+
+    /**
+     * @Route("/save/{joke_id}")
+     * @param int $joke_id
+     * @return JsonResponse
+     * @throws NoResultException
+     * @throws NonUniqueResultException
+     */
+    public function saveJokeToFavorites(int $joke_id) : JsonResponse
+    {
+        $criteria = ['joke_id' => ''];
+        $amountFavoriteJokes = $this->repository->favoriteJokesAmount($criteria);
+
+        if ($this->repository->find($joke_id)) {
+            return new JsonResponse(['result' => 'joke is already favorite']);
+        } else if ($amountFavoriteJokes == FavoriteJoke::MAXIMUM_AMOUNT_FAVORITES) {
+            return new JsonResponse(['result' => 'maximum amount of favorite jokes reached']);
+        } else {
+            $joke = new FavoriteJoke;
+            $joke->setJokeId($joke_id);
+            $this->repository->save($joke);
+            return new JsonResponse(['result' => 'joke saved']);
+        }
+    }
+
+    /**
+     * @Route("/remove/{joke_id}")
+     * @param int $joke_id
+     * @return JsonResponse
+     */
+    public function removeJokeFromFavorites(int $joke_id) : JsonResponse
+    {
+        $joke = $this->repository->find($joke_id);
+        if (!$joke) {
+            return new JsonResponse(['result' => 'joke is not a favorite']);
+        } else {
+            $this->repository->remove($joke);
+            return new JsonResponse(['result' => 'joke removed']);
+        }
+    }
+
+    /**
+     * @Route("/favorites")
+     * @return JsonResponse
+     * @throws ClientExceptionInterface
+     * @throws RedirectionExceptionInterface
+     * @throws ServerExceptionInterface
+     * @throws TransportExceptionInterface
+     */
+    public function listFavorites() : JsonResponse
+    {
+        $jokes = $this->repository->findAll();
+        foreach ($jokes as $joke) {
+            $joke = $this->httpClient->getSingleJoke($joke->getJokeId());
+                $favoriteJokes[] = $joke;
+        }
+
+        return new JsonResponse($favoriteJokes);
+    }
+
 }
