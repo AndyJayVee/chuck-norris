@@ -1,5 +1,5 @@
 # chuck-norris
-assessment webpower
+assessment
 
 Set up this project
 
